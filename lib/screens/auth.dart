@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
+final _firebase = FirebaseAuth.instance;
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -13,13 +17,37 @@ class _AuthScreenState extends State<AuthScreen> {
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
-  void _submit() {
+  void _submit() async {
     final isValid = _formKey.currentState!.validate();
-    if (isValid) {
-      _formKey.currentState!.save();
-      print(_enteredEmail);
-      print(_enteredPassword);
+    if (!isValid) {
+      return;
     }
+    _formKey.currentState!.save();
+
+    try {
+      if (_isLogin) {
+        final UserCredential = await _firebase.signInWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+      } else {
+        final userCredentials = await _firebase.createUserWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {}
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'Authentication failed'),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _enteredEmail.trim();
+    _enteredPassword.trim();
+    super.dispose();
   }
 
   @override
