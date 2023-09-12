@@ -1,7 +1,11 @@
-import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 
+import 'package:flutter/foundation.dart';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_chat_app01/widgets/user_image_picker.dart';
 
 final _firebase = FirebaseAuth.instance;
 
@@ -17,11 +21,14 @@ class _AuthScreenState extends State<AuthScreen> {
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
+  File? _selectedImage;
+
   void _submit() async {
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) {
+    if (!isValid || !_isLogin && _selectedImage == null) {
       return;
     }
+
     _formKey.currentState!.save();
 
     try {
@@ -31,6 +38,15 @@ class _AuthScreenState extends State<AuthScreen> {
       } else {
         final userCredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPassword);
+
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${userCredentials.user!.uid}.jpg');
+
+        await storageRef.putFile(_selectedImage!);
+        final imageUrl = await storageRef.getDownloadURL();
+        print(imageUrl);
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {}
@@ -79,6 +95,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!_isLogin)
+                            UserImagePicker(
+                              onPickImage: (pickedImage) {
+                                _selectedImage = pickedImage;
+                              },
+                            ),
                           TextFormField(
                             decoration: const InputDecoration(
                               labelText: 'Email Address',
@@ -123,6 +145,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                             child: Text(_isLogin ? 'Login' : 'Sign Up'),
                           ),
+                          const SizedBox(height: 8),
                           TextButton(
                             onPressed: () {
                               setState(() {

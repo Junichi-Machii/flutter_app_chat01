@@ -33,9 +33,6 @@ class App extends StatelessWidget {
             ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 56, 192, 54)),
       ),
       home: Scaffold(
-        appBar: AppBar(
-          title: Text('Home'),
-        ),
         body: StreamBuilder(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (ctx, snapshot) {
